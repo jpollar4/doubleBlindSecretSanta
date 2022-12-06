@@ -21,6 +21,7 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 	const [notes, setNotes] = useState([]);
 
 	useEffect(() => {
+		console.log(process.env);
 		fetchNotes();
 	}, []);
 
