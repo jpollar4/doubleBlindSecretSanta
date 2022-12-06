@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./App.scss";
 import "@aws-amplify/ui-react/styles.css";
-import { API } from "aws-amplify";
+import { API, Auth } from "aws-amplify";
 import {
 	Button,
 	Flex,
@@ -23,6 +23,14 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 	useEffect(() => {
 		console.log(process.env);
 		fetchNotes();
+	}, []);
+
+	useEffect(() => {
+		Auth.currentSession()
+			.then((data) => {
+				console.log(data);
+			})
+			.catch((err) => console.log(err));
 	}, []);
 
 	async function fetchNotes() {
