@@ -24,7 +24,7 @@ const App = () => {
 	const [forecast, setForecast] = useState<Forecast | undefined>();
 	const [drink, setDrink] = useState<Drink | undefined>();
 
-	const APIKey = "faa664963b48973ca0c1a340be495512";
+	const APIKey = " ";
 
 	const isSameDay = (date: Date) => {
 		var now = new Date();
