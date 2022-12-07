@@ -1,43 +1,139 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const createNote = /* GraphQL */ `
-  mutation CreateNote(
-    $input: CreateNoteInput!
-    $condition: ModelNoteConditionInput
+export const createParty = /* GraphQL */ `
+  mutation CreateParty(
+    $input: CreatePartyInput!
+    $condition: ModelPartyConditionInput
   ) {
-    createNote(input: $input, condition: $condition) {
+    createParty(input: $input, condition: $condition) {
       id
       name
-      description
+      date
+      host
+      started
+      GuestInfos {
+        items {
+          id
+          partyID
+          email
+          myGuestToGiveTo
+          name
+          phrase
+          createdAt
+          updatedAt
+        }
+        nextToken
+      }
       createdAt
       updatedAt
     }
   }
 `;
-export const updateNote = /* GraphQL */ `
-  mutation UpdateNote(
-    $input: UpdateNoteInput!
-    $condition: ModelNoteConditionInput
+export const updateParty = /* GraphQL */ `
+  mutation UpdateParty(
+    $input: UpdatePartyInput!
+    $condition: ModelPartyConditionInput
   ) {
-    updateNote(input: $input, condition: $condition) {
+    updateParty(input: $input, condition: $condition) {
       id
       name
-      description
+      date
+      host
+      started
+      GuestInfos {
+        items {
+          id
+          partyID
+          email
+          myGuestToGiveTo
+          name
+          phrase
+          createdAt
+          updatedAt
+        }
+        nextToken
+      }
       createdAt
       updatedAt
     }
   }
 `;
-export const deleteNote = /* GraphQL */ `
-  mutation DeleteNote(
-    $input: DeleteNoteInput!
-    $condition: ModelNoteConditionInput
+export const deleteParty = /* GraphQL */ `
+  mutation DeleteParty(
+    $input: DeletePartyInput!
+    $condition: ModelPartyConditionInput
   ) {
-    deleteNote(input: $input, condition: $condition) {
+    deleteParty(input: $input, condition: $condition) {
       id
       name
-      description
+      date
+      host
+      started
+      GuestInfos {
+        items {
+          id
+          partyID
+          email
+          myGuestToGiveTo
+          name
+          phrase
+          createdAt
+          updatedAt
+        }
+        nextToken
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+export const createGuestInfo = /* GraphQL */ `
+  mutation CreateGuestInfo(
+    $input: CreateGuestInfoInput!
+    $condition: ModelGuestInfoConditionInput
+  ) {
+    createGuestInfo(input: $input, condition: $condition) {
+      id
+      partyID
+      email
+      myGuestToGiveTo
+      name
+      phrase
+      createdAt
+      updatedAt
+    }
+  }
+`;
+export const updateGuestInfo = /* GraphQL */ `
+  mutation UpdateGuestInfo(
+    $input: UpdateGuestInfoInput!
+    $condition: ModelGuestInfoConditionInput
+  ) {
+    updateGuestInfo(input: $input, condition: $condition) {
+      id
+      partyID
+      email
+      myGuestToGiveTo
+      name
+      phrase
+      createdAt
+      updatedAt
+    }
+  }
+`;
+export const deleteGuestInfo = /* GraphQL */ `
+  mutation DeleteGuestInfo(
+    $input: DeleteGuestInfoInput!
+    $condition: ModelGuestInfoConditionInput
+  ) {
+    deleteGuestInfo(input: $input, condition: $condition) {
+      id
+      partyID
+      email
+      myGuestToGiveTo
+      name
+      phrase
       createdAt
       updatedAt
     }
