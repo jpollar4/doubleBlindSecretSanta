@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./App.scss";
 import "@aws-amplify/ui-react/styles.css";
 import { API, Auth, graphqlOperation } from "aws-amplify";
 import {
 	Button,
-	Flex,
 	Heading,
-	Text,
-	TextField,
 	View,
 	withAuthenticator,
 } from "@aws-amplify/ui-react";
 import { listGuestInfos, listParties } from "./graphql/queries";
 import {
 	createGuestInfo as createGuestInfoMutation,
+	deleteGuestInfo as deleteGuestInfoMutation,
 	createParty as createPartyMutation,
 	deleteParty as deletePartyMutation,
 	updateGuestInfo as updateGuestInfoMutation,
 } from "./graphql/mutations";
 import PartiesPage, { CreatePartyParams, Party } from "./PartiesPage";
-import PartyView, { UpdateGuestInfoParams } from "./PartyView";
+import PartyView, { GuestInfo, UpdateGuestInfoParams } from "./PartyView";
 
 export const guestInfosByPartyID = /* GraphQL */ `
 	query GuestInfosByPartyID(
@@ -47,6 +45,7 @@ export const guestInfosByPartyID = /* GraphQL */ `
 	}
 `;
 export interface GuestSummary {
+	id: string;
 	name: string;
 	hasPhrase: boolean;
 }
@@ -55,7 +54,6 @@ interface GuestSummaryPerParty {
 }
 
 const App = ({ signOut }: { signOut?: () => void }) => {
-	const [notes, setNotes] = useState([]);
 	const [myEmail, setMyEmail] = useState("");
 	const [currentParty, setCurrentParty] = useState<Party | undefined>();
 	const [parties, setParties] = useState<Party[]>([]);
@@ -77,14 +75,95 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 	useEffect(() => {
 		Auth.currentSession()
 			.then((data) => {
-				console.log((data as any).idToken.payload.email);
 				setMyEmail((data as any).idToken.payload.email);
 			})
 			.catch((err) => console.log(err));
 	}, []);
 
+	// https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+	function shuffle(array: any[]) {
+		let currentIndex = array.length,
+			randomIndex;
+
+		// While there remain elements to shuffle.
+		while (currentIndex != 0) {
+			// Pick a remaining element.
+			randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex--;
+
+			// And swap it with the current element.
+			[array[currentIndex], array[randomIndex]] = [
+				array[randomIndex],
+				array[currentIndex],
+			];
+		}
+
+		return array;
+	}
+
+	const activateSecretSanta = async (party: Party) => {
+		const apiDataNotReadyGuests = await API.graphql(
+			graphqlOperation(guestInfosByPartyID, {
+				partyID: party.id,
+				filter: { phrase: { eq: "" } },
+			})
+		);
+
+		if (
+			(apiDataNotReadyGuests as any).data.guestInfosByPartyID.items.length !== 0
+		) {
+			console.error("Not all guest ready!");
+		} else {
+			const apiDataReadyGuests = await API.graphql(
+				graphqlOperation(guestInfosByPartyID, {
+					partyID: party.id,
+					filter: { phrase: { ne: "" } },
+				})
+			);
+
+			const mapOfGuestsGiverToTarget: { [key: string]: string } = {};
+			let allGuests: GuestInfo[] = (apiDataReadyGuests as any).data
+				.guestInfosByPartyID.items;
+
+			//add dummies
+			// for (let i = 0; i < 15; i++) {
+			// 	allGuests.push({
+			// 		id: `steve${i}`,
+			// 		partyID: allGuests[0].partyID,
+			// 		email: `steve${i}@gmail.com`,
+			// 		name: `steve${i}`,
+			// 	});
+			// }
+			allGuests = shuffle(allGuests);
+
+			for (let i = 0; i < allGuests.length; i++) {
+				const curGuest = allGuests[i];
+				let nextGuest = allGuests[0];
+				if (i < allGuests.length - 1) {
+					nextGuest = allGuests[i + 1];
+				}
+				mapOfGuestsGiverToTarget[curGuest.id] = nextGuest.id;
+			}
+
+			console.log(mapOfGuestsGiverToTarget);
+
+			Object.keys(mapOfGuestsGiverToTarget).forEach(async (g: string) => {
+				await API.graphql({
+					query: updateGuestInfoMutation,
+					variables: {
+						input: {
+							id: g,
+							myGuestToGiveTo: mapOfGuestsGiverToTarget[g],
+						},
+					},
+				});
+			});
+		}
+	};
+
 	const getGuestsForParty = async () => {
 		const updatedSummary: GuestSummaryPerParty = {};
+
 		await parties.forEach(async (p) => {
 			let guestArray: GuestSummary[] = [];
 			const apiDataReadyGuests = await API.graphql(
@@ -93,10 +172,11 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 					filter: { phrase: { ne: "" } },
 				})
 			);
-			console.log((apiDataReadyGuests as any).data.guestInfosByPartyID.items);
+
 			(apiDataReadyGuests as any).data.guestInfosByPartyID.items.forEach(
 				(g: any) => {
 					guestArray.push({
+						id: g.id,
 						name: g.name,
 						hasPhrase: true,
 					});
@@ -109,49 +189,52 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 					filter: { phrase: { eq: "" } },
 				})
 			);
-			console.log(
-				(apiDataNotReadyGuests as any).data.guestInfosByPartyID.items
-			);
+
 			(apiDataNotReadyGuests as any).data.guestInfosByPartyID.items.forEach(
 				(g: any) => {
 					guestArray.push({
+						id: g.id,
 						name: g.name,
 						hasPhrase: false,
 					});
 				}
 			);
 			updatedSummary[p.id] = guestArray;
-			// const partiesFromAPI = (apiData as any).data.listParties.items;
-			// console.log(partiesFromAPI);
-			// setParties(partiesFromAPI);
+			setGuestsForParty({ ...guestsForParty, ...updatedSummary });
 		});
-		setGuestsForParty(updatedSummary);
-		console.log(updatedSummary);
 	};
 
-	async function fetchNotes() {
-		// const apiData = await API.graphql({ query: listGuestInfos });
+	async function fetchMyPartyIDs() {
 		const apiData = await API.graphql(
 			graphqlOperation(listGuestInfos, {
-				filter: { host: { eq: myEmail } },
+				filter: { email: { eq: myEmail } },
 			})
 		);
 
-		const notesFromAPI = (apiData as any).data.listGuestInfos.items;
-		setNotes(notesFromAPI);
+		const dataFromAPI = (apiData as any).data.listGuestInfos.items;
+
+		const newIDs: string[] = [];
+		dataFromAPI.forEach((guestinfo: GuestInfo) => {
+			newIDs.push(guestinfo.partyID);
+		});
+		return newIDs;
 	}
 
 	async function fetchParties() {
-		// const apiData = await API.graphql({
-		// 	query: listParties,
-		// 	variables: { host: myEmail },
-		// });
+		const newIDs: string[] = await fetchMyPartyIDs();
+
+		let filterMembers: any = newIDs.map((id) => {
+			return { id: { eq: id } };
+		});
+		filterMembers.push({ host: { eq: myEmail } });
+		let filter = { or: filterMembers };
+
 		const apiData = await API.graphql(
 			graphqlOperation(listParties, {
-				filter: { host: { eq: myEmail } },
+				filter: filter,
 			})
 		);
-		console.log((apiData as any).data.listParties);
+
 		const partiesFromAPI = (apiData as any).data.listParties.items;
 		console.log(partiesFromAPI);
 		setParties(partiesFromAPI);
@@ -162,18 +245,6 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 			query: createPartyMutation,
 			variables: { input: data },
 		});
-
-		// const newParty = await API.graphql({
-		// 	query: createPartyMutation,
-		// 	variables: {
-		// 		input: {
-		// 			name: "Lorem ipsum dolor sit amet",
-		// 			date: "1970-01-01T12:30:23.999Z",
-		// 			host: "test12346789@testemailtestemail.com",
-		// 			started: true,
-		// 		},
-		// 	},
-		// });
 
 		fetchParties();
 	}
@@ -190,6 +261,14 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 		await API.graphql({
 			query: deletePartyMutation,
 			variables: { input: { id: party.id } },
+		});
+
+		//delete guests
+		guestsForParty[party.id].forEach(async (g) => {
+			await API.graphql({
+				query: deleteGuestInfoMutation,
+				variables: { input: { id: g.id } },
+			});
 		});
 		onClearParty();
 	};
@@ -209,6 +288,20 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 		getGuestsForParty();
 	}
 
+	const onEnterJoinCode = async (code: string) => {
+		const data: UpdateGuestInfoParams = {
+			name: "",
+			phrase: "",
+			partyID: code,
+			email: myEmail,
+		};
+		await API.graphql({
+			query: createGuestInfoMutation,
+			variables: { input: data },
+		});
+		fetchParties();
+	};
+
 	return (
 		<View className="App">
 			<Heading level={1}>Double Blind Secret Santa</Heading>
@@ -219,6 +312,7 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 						onCreateParty={createParty}
 						parties={parties}
 						myEmail={myEmail}
+						onEnterJoinCode={onEnterJoinCode}
 					></PartiesPage>
 					<Button onClick={signOut}>Sign Out</Button>
 				</>
@@ -231,51 +325,9 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 					onCreateGuestInfo={createGuestInfo}
 					onUpdateGuestInfo={updateGuestInfo}
 					partyGuests={guestsForParty[currentParty.id]}
+					onActivateSecretSanta={activateSecretSanta}
 				></PartyView>
 			)}
-
-			{/* <View as="form" margin="3rem 0" onSubmit={createNote}>
-				<Flex direction="row" justifyContent="center">
-					<TextField
-						name="name"
-						placeholder="Note Name"
-						label="Note Name"
-						labelHidden
-						variation="quiet"
-						required
-					/>
-					<TextField
-						name="description"
-						placeholder="Note Description"
-						label="Note Description"
-						labelHidden
-						variation="quiet"
-						required
-					/>
-					<Button type="submit" variation="primary">
-						Create Note
-					</Button>
-				</Flex>
-			</View>
-			<Heading level={2}>Current Notes</Heading>
-			<View margin="3rem 0">
-				{notes.map((note: any) => (
-					<Flex
-						key={note.id || note.name}
-						direction="row"
-						justifyContent="center"
-						alignItems="center"
-					>
-						<Text as="strong" fontWeight={700}>
-							{note.name}
-						</Text>
-						<Text as="span">{note.phrase}</Text>
-						<Button variation="link" onClick={() => deleteNote(note)}>
-							Delete note
-						</Button>
-					</Flex>
-				))}
-			</View> */}
 		</View>
 	);
 };
