@@ -41,6 +41,7 @@ const PartyView = (props: {
 	onCreateGuestInfo: (info: UpdateGuestInfoParams) => void;
 	onUpdateGuestInfo: (info: UpdateGuestInfoParams) => void;
 	onActivateSecretSanta: (party: Party) => void;
+	onDeleteGuest: (id: string) => void;
 }) => {
 	const [isHost, setIsHost] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -55,6 +56,7 @@ const PartyView = (props: {
 		onCreateGuestInfo,
 		onUpdateGuestInfo,
 		partyGuests,
+		onDeleteGuest,
 		onActivateSecretSanta,
 	} = props;
 
@@ -109,11 +111,16 @@ const PartyView = (props: {
 		};
 		if (!myGuestInfo) {
 			await onCreateGuestInfo(data);
+			fetchMyGuestInfo();
 		} else {
 			data.id = myGuestInfo.id;
 			await onUpdateGuestInfo(data);
+			const guestInfo: GuestInfo = { ...myGuestInfo };
+			guestInfo.name = data.name;
+			guestInfo.phrase = data.phrase;
+			setMyGuestInfo(guestInfo);
 		}
-		fetchMyGuestInfo();
+
 		event.target.reset();
 	};
 
@@ -203,6 +210,14 @@ const PartyView = (props: {
 									label="Status"
 									isReadOnly
 								/>
+								{isHost && (
+									<Button
+										variation="primary"
+										onClick={() => onDeleteGuest(g.id)}
+									>
+										Delete Guest
+									</Button>
+								)}
 							</Flex>
 						);
 					})}

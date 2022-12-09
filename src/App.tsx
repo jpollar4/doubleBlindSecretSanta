@@ -21,14 +21,12 @@ import {
 import PartiesPage, { CreatePartyParams, Party } from "./PartiesPage";
 import PartyView, { GuestInfo, UpdateGuestInfoParams } from "./PartyView";
 import { guestInfosByPartyID } from "./custom_queries";
+import { fetchParties, getGuestsForParty, GuestSummaryPerParty } from "./data";
 
 export interface GuestSummary {
 	id: string;
 	name: string;
 	hasPhrase: boolean;
-}
-interface GuestSummaryPerParty {
-	[key: string]: GuestSummary[];
 }
 
 const App = ({ signOut }: { signOut?: () => void }) => {
@@ -42,12 +40,12 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 
 	useEffect(() => {
 		if (myEmail !== "") {
-			fetchParties();
+			fetchPartiesData();
 		}
 	}, [myEmail]);
 
 	useEffect(() => {
-		getGuestsForParty();
+		getGuestDataForParty();
 	}, [parties]);
 
 	useEffect(() => {
@@ -148,83 +146,15 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 		}
 	};
 
-	const getGuestsForParty = async () => {
-		const updatedSummary: GuestSummaryPerParty = {};
-
-		await parties.forEach(async (p) => {
-			let guestArray: GuestSummary[] = [];
-			const apiDataReadyGuests = await API.graphql(
-				graphqlOperation(guestInfosByPartyID, {
-					partyID: p.id,
-					filter: { phrase: { ne: "" } },
-				})
-			);
-
-			(apiDataReadyGuests as any).data.guestInfosByPartyID.items.forEach(
-				(g: any) => {
-					guestArray.push({
-						id: g.id,
-						name: g.name,
-						hasPhrase: true,
-					});
-				}
-			);
-
-			const apiDataNotReadyGuests = await API.graphql(
-				graphqlOperation(guestInfosByPartyID, {
-					partyID: p.id,
-					filter: { phrase: { eq: "" } },
-				})
-			);
-
-			(apiDataNotReadyGuests as any).data.guestInfosByPartyID.items.forEach(
-				(g: any) => {
-					guestArray.push({
-						id: g.id,
-						name: g.name,
-						hasPhrase: false,
-					});
-				}
-			);
-			updatedSummary[p.id] = guestArray;
-			setGuestsForParty({ ...guestsForParty, ...updatedSummary });
-		});
+	const getGuestDataForParty = async (forceFetch = false) => {
+		const updatedSummary = await getGuestsForParty(parties, forceFetch);
+		setGuestsForParty(updatedSummary);
 	};
 
-	async function fetchMyPartyIDs() {
-		const apiData = await API.graphql(
-			graphqlOperation(listGuestInfos, {
-				filter: { email: { eq: myEmail } },
-			})
-		);
+	async function fetchPartiesData(forceFetch = false) {
+		const parties = await fetchParties(myEmail, forceFetch);
 
-		const dataFromAPI = (apiData as any).data.listGuestInfos.items;
-
-		const newIDs: string[] = [];
-		dataFromAPI.forEach((guestinfo: GuestInfo) => {
-			newIDs.push(guestinfo.partyID);
-		});
-		return newIDs;
-	}
-
-	async function fetchParties() {
-		const newIDs: string[] = await fetchMyPartyIDs();
-
-		let filterMembers: any = newIDs.map((id) => {
-			return { id: { eq: id } };
-		});
-		filterMembers.push({ host: { eq: myEmail } });
-		let filter = { or: filterMembers };
-
-		const apiData = await API.graphql(
-			graphqlOperation(listParties, {
-				filter: filter,
-			})
-		);
-
-		const partiesFromAPI = (apiData as any).data.listParties.items;
-		console.log(partiesFromAPI);
-		setParties(partiesFromAPI);
+		setParties(parties);
 	}
 
 	async function createParty(data: CreatePartyParams) {
@@ -233,7 +163,7 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 			variables: { input: data },
 		});
 
-		fetchParties();
+		fetchPartiesData(true);
 	}
 
 	const onSelectParty = (party: Party) => {
@@ -260,33 +190,55 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 		onClearParty();
 	};
 
+	const onDeleteGuest = async (id: string) => {
+		//delete guests
+
+		await API.graphql({
+			query: deleteGuestInfoMutation,
+			variables: { input: { id: id } },
+		});
+		getGuestDataForParty(true);
+	};
+
 	async function createGuestInfo(data: UpdateGuestInfoParams) {
 		await API.graphql({
 			query: createGuestInfoMutation,
 			variables: { input: data },
 		});
-		getGuestsForParty();
+		getGuestDataForParty(true);
 	}
 	async function updateGuestInfo(data: UpdateGuestInfoParams) {
 		await API.graphql({
 			query: updateGuestInfoMutation,
 			variables: { input: data },
 		});
-		getGuestsForParty();
+		getGuestDataForParty(true);
 	}
 
 	const onEnterJoinCode = async (code: string) => {
-		const data: UpdateGuestInfoParams = {
-			name: "",
-			phrase: "",
-			partyID: code,
-			email: myEmail,
-		};
-		await API.graphql({
-			query: createGuestInfoMutation,
-			variables: { input: data },
+		// Are you already in party?
+		let isValid = true;
+		parties.forEach((p) => {
+			if (p.id === code) {
+				isValid = false;
+			}
 		});
-		fetchParties();
+
+		if (isValid) {
+			const data: UpdateGuestInfoParams = {
+				name: "",
+				phrase: "",
+				partyID: code,
+				email: myEmail,
+			};
+			await API.graphql({
+				query: createGuestInfoMutation,
+				variables: { input: data },
+			});
+			fetchPartiesData(true);
+		} else {
+			console.error("ALREADY IN PARTY!");
+		}
 	};
 
 	return (
@@ -312,6 +264,7 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 					onDeleteParty={onDeleteParty}
 					onCreateGuestInfo={createGuestInfo}
 					onUpdateGuestInfo={updateGuestInfo}
+					onDeleteGuest={onDeleteGuest}
 					partyGuests={guestsForParty[currentParty.id]}
 					onActivateSecretSanta={activateSecretSanta}
 				></PartyView>
