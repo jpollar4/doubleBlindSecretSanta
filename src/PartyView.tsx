@@ -2,10 +2,18 @@ import { useState, useEffect } from "react";
 import "./App.scss";
 import "@aws-amplify/ui-react/styles.css";
 import { API, graphqlOperation } from "aws-amplify";
-import { Button, Flex, Heading, TextField, View } from "@aws-amplify/ui-react";
+import {
+	Button,
+	Divider,
+	Flex,
+	Heading,
+	TextField,
+	View,
+} from "@aws-amplify/ui-react";
 import { listGuestInfos } from "./graphql/queries";
 import { Party } from "./PartiesPage";
 import { GuestSummary } from "./App";
+import { getGuestsPhrase } from "./custom_queries";
 
 export interface GuestInfo {
 	id: string;
@@ -37,6 +45,7 @@ const PartyView = (props: {
 	const [isHost, setIsHost] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [myGuestInfo, setMyGuestInfo] = useState<GuestInfo | undefined>();
+	const [myPhraseToMake, setMyPhraseToMake] = useState<string>();
 
 	const {
 		party,
@@ -61,13 +70,22 @@ const PartyView = (props: {
 			})
 		);
 
-		const partiesFromAPI = (apiData as any).data.listGuestInfos.items;
+		const partiesFromAPI: GuestInfo[] = (apiData as any).data.listGuestInfos
+			.items;
 		if (partiesFromAPI.length > 0) {
 			//should only ever be one
 			setMyGuestInfo(partiesFromAPI[0]);
+			if (partiesFromAPI[0].myGuestToGiveTo) {
+				const apiPhrase = await API.graphql({
+					query: getGuestsPhrase,
+					variables: { id: partiesFromAPI[0].myGuestToGiveTo },
+				});
+				const phrase: string = (apiPhrase as any).data.getGuestInfo.phrase;
+				setMyPhraseToMake(phrase);
+			}
 		}
 		if (partiesFromAPI.length > 1) {
-			console.error("SHOLD ONLY BE ONE!");
+			console.error("SHOULD ONLY BE ONE!");
 			console.error(partiesFromAPI);
 		}
 	};
@@ -120,7 +138,7 @@ const PartyView = (props: {
 	};
 
 	const activateSecretSantaButton = () => {
-		if (isHost) {
+		if (isHost && !party.started) {
 			return (
 				<Button onClick={() => onActivateSecretSanta(party)}>
 					Activate Party
@@ -134,31 +152,44 @@ const PartyView = (props: {
 		<View className="App">
 			<Heading level={2}>{party.name}</Heading>
 			<Heading level={2}>{getParsedDate(party.date)}</Heading>
-			{isHost && <Heading level={2}>You're the host!</Heading>}
-			{isHost && <Heading level={2}>{`Join code: ${party.id}`}</Heading>}
-
-			<Heading level={1}>Your Phrase</Heading>
-			<View as="form" margin="3rem 0" onSubmit={updateEntry}>
-				<Flex direction="row" justifyContent="center">
-					<TextField
-						name="name"
-						defaultValue={myGuestInfo?.name}
-						label="Your Name"
-						variation="quiet"
-						required
-					/>
-					<TextField
-						name="phrase"
-						defaultValue={myGuestInfo?.phrase}
-						label="Your Phrase"
-						variation="quiet"
-					/>
-					<Button type="submit" variation="primary">
-						Submit Change
-					</Button>
-				</Flex>
-			</View>
-			<Heading level={1}>Guests</Heading>
+			<Divider orientation="horizontal" />
+			{myPhraseToMake ? (
+				<>
+					<Heading style={{ marginTop: "24px" }} level={2}>
+						The Phrase you must craft is...
+					</Heading>
+					<Heading level={3}>{myPhraseToMake}</Heading>
+				</>
+			) : (
+				<>
+					{isHost && <Heading level={2}>You're the host!</Heading>}
+					{isHost && <Heading level={2}>{`Join code: ${party.id}`}</Heading>}
+					<Heading level={1}>Your Phrase</Heading>
+					<View as="form" margin="3rem 0" onSubmit={updateEntry}>
+						<Flex direction="row" justifyContent="center">
+							<TextField
+								name="name"
+								defaultValue={myGuestInfo?.name}
+								label="Your Name"
+								variation="quiet"
+								required
+							/>
+							<TextField
+								name="phrase"
+								defaultValue={myGuestInfo?.phrase}
+								label="Your Phrase"
+								variation="quiet"
+							/>
+							<Button type="submit" variation="primary">
+								Submit Change
+							</Button>
+						</Flex>
+					</View>
+				</>
+			)}
+			<Heading level={1} style={{ marginTop: "150px" }}>
+				Guests
+			</Heading>
 			<View margin="3rem 0">
 				{partyGuests &&
 					partyGuests.length > 0 &&

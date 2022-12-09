@@ -4,6 +4,7 @@ import "@aws-amplify/ui-react/styles.css";
 import { API, Auth, graphqlOperation } from "aws-amplify";
 import {
 	Button,
+	Divider,
 	Heading,
 	View,
 	withAuthenticator,
@@ -13,37 +14,14 @@ import {
 	createGuestInfo as createGuestInfoMutation,
 	deleteGuestInfo as deleteGuestInfoMutation,
 	createParty as createPartyMutation,
+	updateParty as updatePartyMutation,
 	deleteParty as deletePartyMutation,
 	updateGuestInfo as updateGuestInfoMutation,
 } from "./graphql/mutations";
 import PartiesPage, { CreatePartyParams, Party } from "./PartiesPage";
 import PartyView, { GuestInfo, UpdateGuestInfoParams } from "./PartyView";
+import { guestInfosByPartyID } from "./custom_queries";
 
-export const guestInfosByPartyID = /* GraphQL */ `
-	query GuestInfosByPartyID(
-		$partyID: ID!
-		$sortDirection: ModelSortDirection
-		$filter: ModelGuestInfoFilterInput
-		$limit: Int
-		$nextToken: String
-	) {
-		guestInfosByPartyID(
-			partyID: $partyID
-			sortDirection: $sortDirection
-			filter: $filter
-			limit: $limit
-			nextToken: $nextToken
-		) {
-			items {
-				id
-				partyID
-				email
-				name
-			}
-			nextToken
-		}
-	}
-`;
 export interface GuestSummary {
 	id: string;
 	name: string;
@@ -157,6 +135,15 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 						},
 					},
 				});
+			});
+			await API.graphql({
+				query: updatePartyMutation,
+				variables: {
+					input: {
+						id: party.id,
+						started: true,
+					},
+				},
 			});
 		}
 	};
@@ -305,6 +292,7 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 	return (
 		<View className="App">
 			<Heading level={1}>Double Blind Secret Santa</Heading>
+			<Divider orientation="horizontal" />
 			{currentParty === undefined ? (
 				<>
 					<PartiesPage
