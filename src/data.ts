@@ -116,6 +116,17 @@ export const fetchParties = async (myEmail: string, forceFetch = false) => {
 	return partiesFromAPI;
 };
 
+export const doesPartyExist = async (partyID: string) => {
+	const apiData = await API.graphql(
+		graphqlOperation(listParties, {
+			filter: { id: { eq: partyID } },
+		})
+	);
+
+	const partiesFromAPI: Party[] = (apiData as any).data.listParties.items;
+	return partiesFromAPI.length > 0;
+};
+
 export const getGuestsForParty = async (
 	parties: Party[],
 	forceFetch = false

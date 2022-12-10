@@ -21,7 +21,12 @@ import {
 import PartiesPage, { CreatePartyParams, Party } from "./PartiesPage";
 import PartyView, { GuestInfo, UpdateGuestInfoParams } from "./PartyView";
 import { guestInfosByPartyID } from "./custom_queries";
-import { fetchParties, getGuestsForParty, GuestSummaryPerParty } from "./data";
+import {
+	doesPartyExist,
+	fetchParties,
+	getGuestsForParty,
+	GuestSummaryPerParty,
+} from "./data";
 
 export interface GuestSummary {
 	id: string;
@@ -216,6 +221,10 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 	}
 
 	const onEnterJoinCode = async (code: string) => {
+		if (!code) {
+			return;
+		}
+
 		// Are you already in party?
 		let isValid = true;
 		parties.forEach((p) => {
@@ -225,17 +234,22 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 		});
 
 		if (isValid) {
-			const data: UpdateGuestInfoParams = {
-				name: "",
-				phrase: "",
-				partyID: code,
-				email: myEmail,
-			};
-			await API.graphql({
-				query: createGuestInfoMutation,
-				variables: { input: data },
-			});
-			fetchPartiesData(true);
+			const partyExisits = await doesPartyExist(code);
+			if (partyExisits) {
+				const data: UpdateGuestInfoParams = {
+					name: "",
+					phrase: "",
+					partyID: code,
+					email: myEmail,
+				};
+				await API.graphql({
+					query: createGuestInfoMutation,
+					variables: { input: data },
+				});
+				fetchPartiesData(true);
+			} else {
+				console.error("Party doesn't exist!");
+			}
 		} else {
 			console.error("ALREADY IN PARTY!");
 		}
