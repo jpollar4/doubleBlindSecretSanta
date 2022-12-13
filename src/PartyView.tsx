@@ -187,6 +187,12 @@ const PartyView = (props: {
 								label="Your Phrase"
 								variation="quiet"
 							/>
+						</Flex>
+						<Flex
+							direction="row"
+							justifyContent="center"
+							style={{ paddingTop: "10px" }}
+						>
 							<Button type="submit" variation="primary">
 								Submit Change
 							</Button>

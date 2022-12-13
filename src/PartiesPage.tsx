@@ -65,7 +65,6 @@ const PartiesPage = (props: {
 		<View className="App">
 			<Heading level={1}>Parties</Heading>
 
-			<Heading level={2}>Current Parties</Heading>
 			<View margin="3rem 0">
 				{parties.map((party: any) => (
 					<Flex

@@ -28,6 +28,8 @@ import {
 	GuestSummaryPerParty,
 } from "./data";
 
+import goblinImage from "./giftGoblin.png";
+
 export interface GuestSummary {
 	id: string;
 	name: string;
@@ -257,6 +259,7 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 
 	return (
 		<View className="App">
+			<img src={goblinImage} style={{ width: "300px" }} />
 			<Heading level={1}>Double Blind Secret Santa</Heading>
 			<Divider orientation="horizontal" />
 			{currentParty === undefined ? (

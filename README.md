@@ -1,6 +1,17 @@
-# Getting Started with Create React App
+# Double Blind Secret Santa!!!!
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project was created as a tool for my friend groups double blind secret santa.
+
+## What is Double Blind Secret Santa
+
+Double Blind Secret Santa works like this:
+
+- The party at large comes up with a theme (perhaps... Mario?)
+- Everyone thinks of a phrase or word to represent their desired gift (such as, "Peach", or "Fat Luigi")
+- Now, the phrases are distributed to each member of the party. So All you have is a phrase, you don't know to whom it belongs
+- Next, spend a few weeks crafting a present that emobies that phrase
+- On the day of that party everyone brings their gifts and says "Okay, I had 'Fat Luigi', who had that?" While showing their hand made crocheted fat Luigi
+- Everyone has a laugh and the gift is given
 
 ## Available Scripts
 
@@ -28,19 +39,3 @@ The build is minified and the filenames include the hashes.\
 Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
