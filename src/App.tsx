@@ -108,7 +108,7 @@ const App = ({ signOut }: { signOut?: () => void }) => {
 			let allGuests: GuestInfo[] = (apiDataReadyGuests as any).data
 				.guestInfosByPartyID.items;
 
-			//add dummies
+			//add   dummies
 			// for (let i = 0; i < 15; i++) {
 			// 	allGuests.push({
 			// 		id: `steve${i}`,
